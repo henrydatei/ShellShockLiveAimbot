@@ -1,10 +1,14 @@
 import math
 from pynput.mouse import Listener as MouseListener
 from pynput import keyboard
-from pynput.keyboard import Key, Controller
+#from pynput.keyboard import Key, Controller
+#from pynput.mouse import Button, Controller
+import pynput.keyboard as kb
+import pynput.mouse as ms
 import time
 
-keys = Controller()
+keys = kb.Controller()
+mouse = ms.Controller()
 
 def calcVelocity(distancex,distancey,angle):
     # from https://steamcommunity.com/sharedfiles/filedetails/?id=1327582953
@@ -16,6 +20,8 @@ def calcVelocity(distancex,distancey,angle):
 def calcOptimal(diffx,diffy):
     smallestVelocity = 100
     bestAngle = 0
+    global velocity
+    global angle
     for possibleAngle in range(1,90):
         try:
             v0 = calcVelocity(diffx,diffy,possibleAngle)
@@ -25,23 +31,43 @@ def calcOptimal(diffx,diffy):
         except Exception as e:
             pass
 
+    print("Smallest Velocity")
     print("Velocity = " + str(smallestVelocity))
     print("Angle = " + str(bestAngle))
+    velocity = smallestVelocity
+    angle = bestAngle
 
 def calcHighestBelow100(diffx,diffy):
+    global highVelocity
+    global highAngle
     for possibleAngle in range(1,90):
-        v0 = calcVelocity2(diffx,diffy,90-possibleAngle)
+        v0 = calcVelocity(diffx,diffy,90-possibleAngle)
         if v0 < 100:
             break
 
+    print("Highest Angle with power below 100")
     print("Velocity = " + str(v0))
     print("Angle = " + str(90-possibleAngle))
+    highVelocity = v0
+    highAngle = 90-possibleAngle
 
 def cleanGlobals():
-    del globals()['YourX']
-    del globals()['YourY']
-    del globals()['EnemyX']
-    del globals()['EnemyY']
+    try:
+        del globals()['YourX']
+    except Exception as e:
+        pass
+    try:
+        del globals()['YourY']
+    except Exception as e:
+        pass
+    try:
+        del globals()['EnemyX']
+    except Exception as e:
+        pass
+    try:
+        del globals()['EnemyY']
+    except Exception as e:
+        pass
 
 def setPowerAndAngle(targetPower,targetAngle,startPower,startAngle,direction):
     diffPower = targetPower - startPower
@@ -49,27 +75,35 @@ def setPowerAndAngle(targetPower,targetAngle,startPower,startAngle,direction):
         diffAngle = targetAngle - startAngle
     else:
         diffAngle = -targetAngle + startAngle
-    time.sleep(1)
     if diffPower > 0:
         for i in range(0,diffPower):
             # press arrow up
-            keys.tap(Key.up)
+            keys.tap(kb.Key.up)
             time.sleep(0.1)
     else:
         for i in range(0,-diffPower):
             # press arrow down
-            keys.tap(Key.down)
+            keys.tap(kb.Key.down)
             time.sleep(0.1)
     if diffAngle > 0:
         for i in range(0,diffAngle):
             # press arrow right
-            keys.tap(Key.right)
+            keys.tap(kb.Key.right)
             time.sleep(0.1)
     else:
         for i in range(0,-diffAngle):
             # press arrow left
-            keys.tap(Key.left)
+            keys.tap(kb.Key.left)
             time.sleep(0.1)
+
+def setTo100_90(tankx,tanky):
+    mouse.position = (tankx,tanky)
+    time.sleep(0.1)
+    mouse.press(ms.Button.left)
+    time.sleep(0.1)
+    mouse.move(0,-tanky)
+    time.sleep(0.1)
+    mouse.release(ms.Button.left)
 
 def posPlayer(x, y, button, pressed):
     if pressed:
@@ -90,6 +124,7 @@ def posEnemy(x, y, button, pressed):
     return False
 
 def PlayerLocation():
+    #cleanGlobals()
     print('Click your Tank')
     mouse_listener = MouseListener(on_click=posPlayer)
     mouse_listener.start()
@@ -97,14 +132,12 @@ def PlayerLocation():
     if 'EnemyX' in globals() and 'EnemyY' in globals():
         # all needed, calc shot
         diffx = abs(YourX-EnemyX)
-        diffy = EnemyY-YourY
-        print(str(diffx))
-        print(str(diffy))
+        diffy = -EnemyY+YourY
         calcOptimal(diffx,diffy)
         calcHighestBelow100(diffx,diffy)
-        cleanGlobals()
 
 def EnemyLocation():
+    #cleanGlobals()
     print('Click enemy Tank')
     mouse_listener = MouseListener(on_click=posEnemy)
     mouse_listener.start()
@@ -113,11 +146,24 @@ def EnemyLocation():
         # all needed, calc shot
         diffx = abs(YourX-EnemyX)
         diffy = -EnemyY+YourY
-        print(str(diffx))
-        print(str(diffy))
         calcOptimal(diffx,diffy)
         calcHighestBelow100(diffx,diffy)
-        cleanGlobals()
 
-with keyboard.GlobalHotKeys({'<ctrl>+<alt>+P': PlayerLocation,'<ctrl>+<alt>+E': EnemyLocation}) as h:
+def prepareShot():
+    setTo100_90(YourX,YourY)
+    if YourX < EnemyX:
+        direction = "right"
+    else:
+        direction = "left"
+    setPowerAndAngle(round(velocity),angle,100,90,direction)
+
+def prepareHighShot():
+    setTo100_90(YourX,YourY)
+    if YourX < EnemyX:
+        direction = "right"
+    else:
+        direction = "left"
+    setPowerAndAngle(round(highVelocity),highAngle,100,90,direction)
+
+with keyboard.GlobalHotKeys({'<ctrl>+<alt>+P': PlayerLocation, '<ctrl>+<alt>+E': EnemyLocation, '<ctrl>+<alt>+S': prepareShot, '<ctrl>+<alt>+H': prepareHighShot}) as h:
     h.join()
