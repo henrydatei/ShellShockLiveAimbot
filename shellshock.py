@@ -179,20 +179,23 @@ def readNumber(key):
     if key == kb.Key.enter:
         print("ENTER pressed")
         return False
-
     if hasattr(key, 'vk') and 96 <= key.vk <= 105:
         number = key.vk - 96
         print(number)
-        keystroke=keystroke+str(number)
+        keystroke = keystroke + str(number)
+    if hasattr(key, 'char') and key.char == '-' and keystroke == "":
+        keystroke = keystroke + "-"
+        print("")
 
 def readWind():
     global keystroke
-    print("keylogger started")
+    print("Enter wind strength followed by <ENTER> on your numpad")
     keystroke=""
     with keyboard.Listener(on_press=readNumber) as lst:
         lst.join()
     keystroke = int(keystroke)
     print("Keystroke: "+ str(keystroke))
+    
 
 
 with keyboard.GlobalHotKeys({'<ctrl>+<alt>+P': PlayerLocation, '<ctrl>+<alt>+E': EnemyLocation, '<ctrl>+<alt>+S': prepareShot, '<ctrl>+<alt>+H': prepareHighShot, '<ctrl>+<alt>+W': readWind}) as h:
