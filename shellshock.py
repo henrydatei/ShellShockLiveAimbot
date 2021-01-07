@@ -189,16 +189,34 @@ def prepareHighShot():
 
 def readNumber(key):
     global set_wind
-    if key == kb.Key.enter:
-        print("ENTER pressed")
-        return False
-    if hasattr(key, 'vk') and 96 <= key.vk <= 105:
-        number = key.vk - 96
-        print(number)
-        set_wind = set_wind + str(number)
-    if hasattr(key, 'char') and key.char == '-' and set_wind == "":
-        set_wind = set_wind + "-"
-        print("")
+    os = "linux"
+    #print(key.vk)
+    #print(key.char)
+    if os == "linux":
+        if key == kb.Key.enter:
+            print("ENTER pressed")
+            return False
+        if hasattr(key, 'char'):
+            if key.char is None:
+                number = "5"
+            else:
+                number = key.char
+            print(number)
+            set_wind = set_wind + str(number)
+        if hasattr(key, 'char') and key.char == '-' and set_wind == "":
+            set_wind = set_wind + "-"
+            print("")
+    else:
+        if key == kb.Key.enter:
+            print("ENTER pressed")
+            return False
+        if hasattr(key, 'vk') and 96 <= key.vk <= 105:
+            number = key.vk - 96
+            print(number)
+            set_wind = set_wind + str(number)
+        if hasattr(key, 'char') and key.char == '-' and set_wind == "":
+            set_wind = set_wind + "-"
+            print("")
 
 
 
