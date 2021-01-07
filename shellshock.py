@@ -6,9 +6,11 @@ from pynput import keyboard
 import pynput.keyboard as kb
 import pynput.mouse as ms
 import time
+import platform
 
 keys = kb.Controller()
 mouse = ms.Controller()
+os = platform.system()
 
 def calcVelocity(distancex,distancey,angle):
     # from https://steamcommunity.com/sharedfiles/filedetails/?id=1327582953
@@ -189,10 +191,9 @@ def prepareHighShot():
 
 def readNumber(key):
     global set_wind
-    os = "linux"
     #print(key.vk)
     #print(key.char)
-    if os == "linux":
+    if os == "Linux":
         if key == kb.Key.enter:
             print("ENTER pressed")
             return False
