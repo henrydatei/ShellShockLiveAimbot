@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.vs/VSWorkspaceState.json
+.vs/ShellShockLiveAimbot/v16/.suo
+.vs/ProjectSettings.json
+.vs/slnx.sqlite

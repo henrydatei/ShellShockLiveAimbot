@@ -17,6 +17,15 @@ def calcVelocity(distancex,distancey,angle):
     v0 = -2/(g * q) * math.sqrt((-g * distancex * distancex)/(2 * math.cos(math.radians(angle)) * math.cos(math.radians(angle)) * (math.tan(math.radians(angle)) * distancex - distancey)))
     return v0
 
+def calcVelocityWithWind(s_x,s_y,angle,wind):
+    g = 379.106
+    q = 0.0518718
+    z = 0.4757
+    w = z * wind
+    v_0 = (g * s_x - w * s_y)/(math.sqrt(2 * g * s_x * math.sin(math.radians(angle)) - 2 * s_x * w * pow(math.sin(math.radians(angle)),2) + 2 * w * s_y * math.sin(math.radians(angle)) - 2 * g * s_y))
+    power = (2/(g * q)) * v_0
+    return power
+
 def calcOptimal(diffx,diffy):
     smallestVelocity = 100
     bestAngle = 0
@@ -165,5 +174,26 @@ def prepareHighShot():
         direction = "left"
     setPowerAndAngle(round(highVelocity),highAngle,100,90,direction)
 
-with keyboard.GlobalHotKeys({'<ctrl>+<alt>+P': PlayerLocation, '<ctrl>+<alt>+E': EnemyLocation, '<ctrl>+<alt>+S': prepareShot, '<ctrl>+<alt>+H': prepareHighShot}) as h:
+def readNumber(key):
+    global keystroke
+    if key == kb.Key.enter:
+        print("ENTER pressed")
+        return False
+
+    if hasattr(key, 'vk') and 96 <= key.vk <= 105:
+        number = key.vk - 96
+        print(number)
+        keystroke=keystroke+str(number)
+
+def readWind():
+    global keystroke
+    print("keylogger started")
+    keystroke=""
+    with keyboard.Listener(on_press=readNumber) as lst:
+        lst.join()
+    keystroke = int(keystroke)
+    print("Keystroke: "+ str(keystroke))
+
+
+with keyboard.GlobalHotKeys({'<ctrl>+<alt>+P': PlayerLocation, '<ctrl>+<alt>+E': EnemyLocation, '<ctrl>+<alt>+S': prepareShot, '<ctrl>+<alt>+H': prepareHighShot, '<ctrl>+<alt>+W': readWind}) as h:
     h.join()
