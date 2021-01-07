@@ -134,7 +134,7 @@ def posEnemy(x, y, button, pressed):
 
 def PlayerLocation():
     global set_wind
-    wind = str(set_wind)
+    wind = int(set_wind)
     #cleanGlobals()
     print('Click your Tank')
     mouse_listener = MouseListener(on_click=posPlayer)
@@ -149,7 +149,7 @@ def PlayerLocation():
 
 def EnemyLocation():
     global set_wind
-    wind = str(set_wind)
+    wind = int(set_wind)
     #cleanGlobals()
     print('Click enemy Tank')
     mouse_listener = MouseListener(on_click=posEnemy)
