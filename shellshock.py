@@ -26,14 +26,14 @@ def calcVelocityWithWind(s_x,s_y,angle,wind):
     power = (2/(g * q)) * v_0
     return power
 
-def calcOptimal(diffx,diffy):
+def calcOptimal(diffx,diffy,wind):
     smallestVelocity = 100
     bestAngle = 0
     global velocity
     global angle
     for possibleAngle in range(1,90):
         try:
-            v0 = calcVelocity(diffx,diffy,possibleAngle)
+            v0 = calcVelocityWithWind(diffx,diffy,wind,possibleAngle)
             if v0 < smallestVelocity:
                 smallestVelocity = v0
                 bestAngle = possibleAngle
@@ -46,11 +46,11 @@ def calcOptimal(diffx,diffy):
     velocity = smallestVelocity
     angle = bestAngle
 
-def calcHighestBelow100(diffx,diffy):
+def calcHighestBelow100(diffx,diffy,wind):
     global highVelocity
     global highAngle
     for possibleAngle in range(1,90):
-        v0 = calcVelocity(diffx,diffy,90-possibleAngle)
+        v0 = calcVelocityWithWind(diffx,diffy,wind,90-possibleAngle)
         if v0 < 100:
             break
 
@@ -133,6 +133,8 @@ def posEnemy(x, y, button, pressed):
     return False
 
 def PlayerLocation():
+    global set_wind
+    wind = str(set_wind)
     #cleanGlobals()
     print('Click your Tank')
     mouse_listener = MouseListener(on_click=posPlayer)
@@ -142,10 +144,12 @@ def PlayerLocation():
         # all needed, calc shot
         diffx = abs(YourX-EnemyX)
         diffy = -EnemyY+YourY
-        calcOptimal(diffx,diffy)
-        calcHighestBelow100(diffx,diffy)
+        calcOptimal(diffx,diffy,wind)
+        calcHighestBelow100(diffx,diffy,wind)
 
 def EnemyLocation():
+    global set_wind
+    wind = str(set_wind)
     #cleanGlobals()
     print('Click enemy Tank')
     mouse_listener = MouseListener(on_click=posEnemy)
@@ -155,8 +159,17 @@ def EnemyLocation():
         # all needed, calc shot
         diffx = abs(YourX-EnemyX)
         diffy = -EnemyY+YourY
-        calcOptimal(diffx,diffy)
-        calcHighestBelow100(diffx,diffy)
+        calcOptimal(diffx,diffy,wind)
+        calcHighestBelow100(diffx,diffy,wind)
+
+def readWind():
+    global set_wind
+    print("Enter wind strength followed by <ENTER> on your numpad")
+    set_wind=""
+    with keyboard.Listener(on_press=readNumber) as lst:
+        lst.join()
+    set_wind = int(set_wind)
+    print("Keystroke: "+ str(set_wind))
 
 def prepareShot():
     setTo100_90(YourX,YourY)
@@ -175,27 +188,19 @@ def prepareHighShot():
     setPowerAndAngle(round(highVelocity),highAngle,100,90,direction)
 
 def readNumber(key):
-    global keystroke
+    global set_wind
     if key == kb.Key.enter:
         print("ENTER pressed")
         return False
     if hasattr(key, 'vk') and 96 <= key.vk <= 105:
         number = key.vk - 96
         print(number)
-        keystroke = keystroke + str(number)
-    if hasattr(key, 'char') and key.char == '-' and keystroke == "":
-        keystroke = keystroke + "-"
+        set_wind = set_wind + str(number)
+    if hasattr(key, 'char') and key.char == '-' and set_wind == "":
+        set_wind = set_wind + "-"
         print("")
 
-def readWind():
-    global keystroke
-    print("Enter wind strength followed by <ENTER> on your numpad")
-    keystroke=""
-    with keyboard.Listener(on_press=readNumber) as lst:
-        lst.join()
-    keystroke = int(keystroke)
-    print("Keystroke: "+ str(keystroke))
-    
+
 
 
 with keyboard.GlobalHotKeys({'<ctrl>+<alt>+P': PlayerLocation, '<ctrl>+<alt>+E': EnemyLocation, '<ctrl>+<alt>+S': prepareShot, '<ctrl>+<alt>+H': prepareHighShot, '<ctrl>+<alt>+W': readWind}) as h:
