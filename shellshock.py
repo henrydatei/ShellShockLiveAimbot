@@ -28,14 +28,25 @@ def calcVelocityWithWind(s_x,s_y,angle,wind):
     power = (2/(g * q)) * v_0
     return power
 
-def calcOptimal(diffx,diffy,wind):
+def calcVelocityWithWind_y0(s_x,angle,wind):
+    g = 379.106
+    q = 0.0518718
+    z = 0.4757
+    w = z * wind
+    print("Inputs: " + str(s_x) + ", " + str(angle) + ", " + str(wind))
+    v_0 = (g * math.sqrt(s_x))/(math.sqrt(2 * g * math.sin(math.radians(angle)) * math.cos(math.radians(angle)) + 2 * w * pow(math.sin(math.radians(angle)),2)))
+    power = (2/(g * q)) * v_0
+    print(power)
+    return power
+
+def calcOptimal(diffx,diffy):
     smallestVelocity = 100
     bestAngle = 0
     global velocity
     global angle
     for possibleAngle in range(1,90):
         try:
-            v0 = calcVelocityWithWind(diffx,diffy,wind,possibleAngle)
+            v0 = calcVelocity(diffx,diffy,possibleAngle)
             if v0 < smallestVelocity:
                 smallestVelocity = v0
                 bestAngle = possibleAngle
@@ -48,11 +59,11 @@ def calcOptimal(diffx,diffy,wind):
     velocity = smallestVelocity
     angle = bestAngle
 
-def calcHighestBelow100(diffx,diffy,wind):
+def calcHighestBelow100(diffx,diffy):
     global highVelocity
     global highAngle
     for possibleAngle in range(1,90):
-        v0 = calcVelocityWithWind(diffx,diffy,wind,90-possibleAngle)
+        v0 = calcVelocity(diffx,diffy,90-possibleAngle)
         if v0 < 100:
             break
 
@@ -135,8 +146,8 @@ def posEnemy(x, y, button, pressed):
     return False
 
 def PlayerLocation():
-    global set_wind
-    wind = int(set_wind)
+    #global set_wind
+    #wind = int(set_wind)
     #cleanGlobals()
     print('Click your Tank')
     mouse_listener = MouseListener(on_click=posPlayer)
@@ -146,12 +157,12 @@ def PlayerLocation():
         # all needed, calc shot
         diffx = abs(YourX-EnemyX)
         diffy = -EnemyY+YourY
-        calcOptimal(diffx,diffy,wind)
-        calcHighestBelow100(diffx,diffy,wind)
+        calcOptimal(diffx,diffy)
+        calcHighestBelow100(diffx,diffy)
 
 def EnemyLocation():
-    global set_wind
-    wind = int(set_wind)
+    #global set_wind
+    #wind = int(set_wind)
     #cleanGlobals()
     print('Click enemy Tank')
     mouse_listener = MouseListener(on_click=posEnemy)
@@ -161,8 +172,8 @@ def EnemyLocation():
         # all needed, calc shot
         diffx = abs(YourX-EnemyX)
         diffy = -EnemyY+YourY
-        calcOptimal(diffx,diffy,wind)
-        calcHighestBelow100(diffx,diffy,wind)
+        calcOptimal(diffx,diffy)
+        calcHighestBelow100(diffx,diffy)
 
 def readWind():
     global set_wind
