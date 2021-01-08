@@ -25,7 +25,8 @@ def calcVelocity(distancex,distancey,angle):
 def calcVelocityWithWind(s_x,s_y,angle,wind):
     g = 379.106
     q = 0.0518718
-    z = 0.4757
+    #z = 0.4757
+    z = 0.5
     w = z * wind
     v_0 = (g * s_x - w * s_y)/(math.sqrt(2 * g * s_x * math.sin(math.radians(angle)) * math.cos(math.radians(angle)) + 2 * g * s_y * pow(math.cos(math.radians(angle)),2) + 2 * w * s_x * pow(math.sin(math.radians(angle)),2) + 2 * w * s_y * math.sin(math.radians(angle)) * math.cos(math.radians(angle))))
     power = (2/(g * q)) * v_0
@@ -72,7 +73,10 @@ def calcHighestBelow100(diffx,diffy,wind):
         if wind == 0:
             v0 = calcVelocity(diffx,diffy,90-possibleAngle)
         else:
-            v0 = calcVelocityWithWind(diffx,diffy,90-possibleAngle,wind)
+            try:
+                v0 = calcVelocityWithWind(diffx,diffy,90-possibleAngle,wind)
+            except Exception as e:
+                v0 = 101
         if v0 < 100:
             break
 
@@ -97,6 +101,10 @@ def cleanGlobals():
         pass
     try:
         del globals()['EnemyY']
+    except Exception as e:
+        pass
+    try:
+        del globals()['set_wind']
     except Exception as e:
         pass
 
@@ -208,6 +216,7 @@ def prepareShot():
     else:
         direction = "left"
     setPowerAndAngle(round(velocity),angle,100,90,direction)
+    cleanGlobals()
 
 def prepareHighShot():
     setTo100_90(YourX,YourY)
@@ -216,6 +225,7 @@ def prepareHighShot():
     else:
         direction = "left"
     setPowerAndAngle(round(highVelocity),highAngle,100,90,direction)
+    cleanGlobals()
 
 def readNumber(key):
     global set_wind
