@@ -118,30 +118,30 @@ def setPowerAndAngle(targetPower,targetAngle,startPower,startAngle,direction):
         for i in range(0,diffPower):
             # press arrow up
             keys.tap(kb.Key.up)
-            time.sleep(0.1)
+            time.sleep(0.05)
     else:
         for i in range(0,-diffPower):
             # press arrow down
             keys.tap(kb.Key.down)
-            time.sleep(0.1)
+            time.sleep(0.05)
     if diffAngle > 0:
         for i in range(0,diffAngle):
             # press arrow right
             keys.tap(kb.Key.right)
-            time.sleep(0.1)
+            time.sleep(0.05)
     else:
         for i in range(0,-diffAngle):
             # press arrow left
             keys.tap(kb.Key.left)
-            time.sleep(0.1)
+            time.sleep(0.05)
 
 def setTo100_90(tankx,tanky):
     mouse.position = (tankx,tanky)
-    time.sleep(0.1)
+    time.sleep(0.05)
     mouse.press(ms.Button.left)
-    time.sleep(0.1)
+    time.sleep(0.05)
     mouse.move(0,-tanky)
-    time.sleep(0.1)
+    time.sleep(0.05)
     mouse.release(ms.Button.left)
 
 def posPlayer(x, y, button, pressed):
@@ -208,6 +208,8 @@ def readWind():
         lst.join()
     set_wind = int(set_wind)
     print("Keystroke: "+ str(set_wind))
+    time.sleep(0.1)
+    keys.tap(kb.Key.enter)
 
 def prepareShot():
     setTo100_90(YourX,YourY)
