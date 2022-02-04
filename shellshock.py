@@ -26,7 +26,8 @@ def calcVelocityWithWind(s_x,s_y,angle,wind):
     g = 379.106
     q = 0.0518718
     #z = 0.4757
-    z = 0.513538766675914
+    #z = 0.513538766675914
+    z = 0.5
     w = z * wind
     v_0 = (g * s_x - w * s_y)/(math.sqrt(2 * g * s_x * math.sin(math.radians(angle)) * math.cos(math.radians(angle)) + 2 * g * s_y * pow(math.cos(math.radians(angle)),2) + 2 * w * s_x * pow(math.sin(math.radians(angle)),2) + 2 * w * s_y * math.sin(math.radians(angle)) * math.cos(math.radians(angle))))
     power = (2/(g * q)) * v_0
