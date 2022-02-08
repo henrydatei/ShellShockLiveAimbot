@@ -1,8 +1,10 @@
 import math
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 import pyscreenshot as ImageGrab
+from pynput.mouse import Listener as MouseListener
 
 def calcVelocity(distancex,distancey,angle):
     # from https://steamcommunity.com/sharedfiles/filedetails/?id=1327582953
@@ -100,12 +102,13 @@ def findPos(needlepic, haystackpic, maxX = 40, maxY = 40, threshold = 0.25, oneR
                 else:
                     x[...] = 1
         zeros = np.where(result == 0)
-        xgroups = cluster(zeros[0], maxX)
-        ygroups = cluster(zeros[1], maxY)
+        xgroups = cluster(zeros[1], maxX)
+        ygroups = cluster(zeros[0], maxY)
         X = []
         for i in range(len(zeros[0])):
-            X.append((zeros[0][i], zeros[1][i]))
-        model = KMeans(n_clusters = max(len(xgroups), len(ygroups)))
+            X.append((zeros[1][i], zeros[0][i]))
+        #print(X)
+        model = KMeans(n_clusters = max(len(xgroups), len(ygroups))) # something here returns wrong results
         model.fit(X)
         #print(model.cluster_centers_)
 
@@ -119,16 +122,53 @@ def findPos(needlepic, haystackpic, maxX = 40, maxY = 40, threshold = 0.25, oneR
 
 def findPlayer():
     x, y = findPos("pics/player.png", "pics/screen.png", maxX = 33, maxY = 16, threshold = 0.1, oneResult = True)
-    x = x + 16 # 16
-    y = y - 100 # 100
+    x = x + 20
+    y = 1080 - y - 15
+    print("Found player at: " + str(x) + ", " + str(y))
     return((x,y))
 
 def findEnemies():
-    liste = []
-    res = findPos("pics/enemy.png", "pics/screen.png")
-    for pos in res:
-        liste.append((pos[1], pos[0]))
-    return liste
+    # liste = []
+    # res = findPos("pics/enemy.png", "pics/screen.png")
+    # for pos in res:
+    #     x = int(pos[1])
+    #     y = int(1080 - pos[0])
+    #     liste.append((x, y))
+    #     print("Found enemy at: " + str(x) + ", " + str(y))
+    # return liste
+    x, y = findPos("pics/enemy.png", "pics/screen.png", oneResult = True)
+    x = x + 20
+    y = 1080 - y - 15
+    print("Found enemy at: " + str(x) + ", " + str(y))
+    return((x,y))
+
+def posPlayer(x, y, button, pressed):
+    if pressed:
+        print("Your position: " + str(x) + ", " + str(y))
+        global YourX
+        YourX = x
+        global YourY
+        YourY = y
+    return False
+
+def posEnemy(x, y, button, pressed):
+    if pressed:
+        print("Enemy position: " + str(x) + ", " + str(y))
+        global EnemyX
+        EnemyX = x
+        global EnemyY
+        EnemyY = y
+    return False
+
+def PlayerLocation():
+    mouse_listener = MouseListener(on_click = posPlayer)
+    mouse_listener.start()
+    mouse_listener.join()
+
+def EnemyLocation():
+    mouse_listener = MouseListener(on_click = posEnemy)
+    mouse_listener.start()
+    mouse_listener.join()
 
 def calcOptimalWithWind(player, enemy, wind):
     noWindPower, noWindAngle = calcOptimal(abs(player[0] - enemy[0]), player[1] - enemy[1])
@@ -140,13 +180,33 @@ def calcOptimalWithWind(player, enemy, wind):
                     print("Angle: " + str(angle))
                     print("Power: " + str(power))
                     return angle, power
+    print("Simulation for shot will never hit exactly!")
 
 im = ImageGrab.grab(bbox = (0,0,1920,930))
 im.save('pics/screen.png')
 
-#player = findPlayer()
-#enemy = findEnemies()[0]
+try:
+    player = findPlayer()
+except:
+    print("Could not find player, please click on it")
+    PlayerLocation()
+    global YourX
+    global YourY
+    player = (YourX, YourY)
+try:
+    enemy = findEnemies()
+except:
+    print("Could not find enemy, please click on it")
+    EnemyLocation()
+    global EnemyX
+    global EnemyY
+    enemy = (EnemyX, EnemyY)
 
-#calcOptimalWithWind(player, enemy, 0)
+image = cv2.circle(cv2.imread('pics/screen.png'), (player[0], 1080-player[1]), 5, (0,0,255), -1)
+image = cv2.circle(image, (enemy[0], 1080-enemy[1]), 5, (0,0,255), -1)
+cv2.imshow("test", image)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+calcOptimalWithWind(player, enemy, 0)
 
 
