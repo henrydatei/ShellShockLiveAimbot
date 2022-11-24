@@ -15,5 +15,8 @@ I've added 2 modi
 - You can set power and angle by hand or let the computer do the work for you: For the first modus press <kbd>CTRL</kbd> + <kbd>ALT</kbd> + <kbd>S</kbd> and for the sedond modus press <kbd>CTRL</kbd> + <kbd>ALT</kbd> + <kbd>H</kbd>
 - Press <kbd>SPACE</kbd> to fire the projectile
 
+### shellshock2.py
+In `shellshock2.py` I've tried a bit around with automatic image processing to automatically find the tanks and also include wind calculation but I'm not finished yet. This is still WIP because the accuracy is sometimes really bad. If you have any suggestions on how to improve this please write a issue or create a PR. Thanks!
+
 ### Todo:
 - [ ] wind calculation
