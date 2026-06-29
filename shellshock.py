@@ -1,176 +1,184 @@
 import math
-from pynput.mouse import Listener as MouseListener
-from pynput import keyboard
-#from pynput.keyboard import Key, Controller
-#from pynput.mouse import Button, Controller
-import pynput.keyboard as kb
-import pynput.mouse as ms
 import time
-import platform
+from typing import Tuple, Optional
+from pynput.mouse import Listener as MouseListener, Controller as MouseController, Button
+from pynput.keyboard import Controller as KeyboardController, Key, GlobalHotKeys
 
-keys = kb.Controller()
-mouse = ms.Controller()
-os = platform.system()
+class ShellShockAimbot:
+    def __init__(self):
+        self.keyboard = KeyboardController()
+        self.mouse = MouseController()
+        
+        self.player_pos: Optional[Tuple[int, int]] = None
+        self.enemy_pos: Optional[Tuple[int, int]] = None
+        
+        self.optimal_shot: Optional[Tuple[int, int]] = None
+        self.high_shot: Optional[Tuple[int, int]] = None
 
-global set_wind
-set_wind = ""
-
-def calcVelocity(distancex,distancey,angle):
-    # from https://steamcommunity.com/sharedfiles/filedetails/?id=1327582953
-    g = -379.106
-    q = 0.0518718
-    v0 = -2/(g * q) * math.sqrt((-g * distancex * distancex)/(2 * math.cos(math.radians(angle)) * math.cos(math.radians(angle)) * (math.tan(math.radians(angle)) * distancex - distancey)))
-    return v0
-
-def calcOptimal(diffx,diffy):
-    smallestVelocity = 100
-    bestAngle = 0
-    global velocity
-    global angle
-    for possibleAngle in range(1,90):
+    def calc_velocity(self, dist_x: float, dist_y: float, angle: int) -> float:
+        """Calculate the required velocity for a given distance and angle."""
+        g = -379.106
+        q = 0.0518718
+        
+        angle_rad = math.radians(angle)
+        cos_a = math.cos(angle_rad)
+        tan_a = math.tan(angle_rad)
+        
         try:
-            v0 = calcVelocity(diffx,diffy,possibleAngle)
-            if v0 < smallestVelocity:
-                smallestVelocity = v0
-                bestAngle = possibleAngle
-        except Exception as e:
-            pass
+            val = (-g * dist_x * dist_x) / (2 * cos_a * cos_a * (tan_a * dist_x - dist_y))
+            if val < 0:
+                return float('inf')
+            v0 = -2 / (g * q) * math.sqrt(val)
+            return v0
+        except (ValueError, ZeroDivisionError):
+            return float('inf')
 
-    print("Smallest Velocity")
-    print("Velocity = " + str(smallestVelocity))
-    print("Angle = " + str(bestAngle))
-    velocity = smallestVelocity
-    angle = bestAngle
+    def calculate_shots(self):
+        """Calculate both optimal and high angle shots."""
+        if not self.player_pos or not self.enemy_pos:
+            return
+            
+        dist_x = abs(self.player_pos[0] - self.enemy_pos[0])
+        dist_y = -(self.enemy_pos[1] - self.player_pos[1])
+        
+        smallest_velocity = float('inf')
+        best_angle = 0
+        
+        # Calculate optimal shot (lowest velocity)
+        for possible_angle in range(1, 90):
+            v0 = self.calc_velocity(dist_x, dist_y, possible_angle)
+            if v0 < smallest_velocity:
+                smallest_velocity = v0
+                best_angle = possible_angle
+                
+        if smallest_velocity != float('inf'):
+            print(f"Optimal Shot -> Velocity: {smallest_velocity:.2f}, Angle: {best_angle}")
+            self.optimal_shot = (round(smallest_velocity), best_angle)
+            
+        # Calculate highest shot below 100 power
+        for possible_angle in range(1, 90):
+            high_angle = 90 - possible_angle
+            v0 = self.calc_velocity(dist_x, dist_y, high_angle)
+            if v0 <= 100:
+                print(f"High Shot -> Velocity: {v0:.2f}, Angle: {high_angle}")
+                self.high_shot = (round(v0), high_angle)
+                break
 
-def calcHighestBelow100(diffx,diffy):
-    global highVelocity
-    global highAngle
-    for possibleAngle in range(1,90):
-        v0 = calcVelocity(diffx,diffy,90-possibleAngle)
-        if v0 < 100:
-            break
+    def set_player_pos(self):
+        print("Click your Tank")
+        def on_click(x, y, button, pressed):
+            if pressed:
+                print(f"Player positioned at: {x}, {y}")
+                self.player_pos = (x, y)
+                self.calculate_shots()
+                return False
+                
+        with MouseListener(on_click=on_click) as listener:
+            listener.join()
 
-    print("Highest Angle with power below 100")
-    print("Velocity = " + str(v0))
-    print("Angle = " + str(90-possibleAngle))
-    highVelocity = v0
-    highAngle = 90-possibleAngle
+    def set_enemy_pos(self):
+        print("Click enemy Tank")
+        def on_click(x, y, button, pressed):
+            if pressed:
+                print(f"Enemy positioned at: {x}, {y}")
+                self.enemy_pos = (x, y)
+                self.calculate_shots()
+                return False
+                
+        with MouseListener(on_click=on_click) as listener:
+            listener.join()
 
-def cleanGlobals():
-    try:
-        del globals()['YourX']
-    except Exception as e:
-        pass
-    try:
-        del globals()['YourY']
-    except Exception as e:
-        pass
-    try:
-        del globals()['EnemyX']
-    except Exception as e:
-        pass
-    try:
-        del globals()['EnemyY']
-    except Exception as e:
-        pass
+    def reset_to_100_90(self):
+        """Resets the game UI to 100 power and 90 degrees."""
+        if not self.player_pos:
+            return
+            
+        px, py = self.player_pos
+        self.mouse.position = (px, py)
+        time.sleep(0.05)
+        self.mouse.press(Button.left)
+        time.sleep(0.05)
+        # Move mouse to top of screen to max out power and set angle to 90
+        self.mouse.position = (px, 0)
+        time.sleep(0.05)
+        self.mouse.release(Button.left)
+        time.sleep(0.1)
 
-def setPowerAndAngle(targetPower,targetAngle,startPower,startAngle,direction):
-    diffPower = targetPower - startPower
-    if direction == "left":
-        diffAngle = targetAngle - startAngle
-    else:
-        diffAngle = -targetAngle + startAngle
-    if diffPower > 0:
-        for i in range(0,diffPower):
-            # press arrow up
-            keys.tap(kb.Key.up)
-            time.sleep(0.05)
-    else:
-        for i in range(0,-diffPower):
-            # press arrow down
-            keys.tap(kb.Key.down)
-            time.sleep(0.05)
-    if diffAngle > 0:
-        for i in range(0,diffAngle):
-            # press arrow right
-            keys.tap(kb.Key.right)
-            time.sleep(0.05)
-    else:
-        for i in range(0,-diffAngle):
-            # press arrow left
-            keys.tap(kb.Key.left)
-            time.sleep(0.05)
+    def apply_shot(self, target_power: int, target_angle: int):
+        if not self.player_pos or not self.enemy_pos:
+            print("Set both player and enemy positions first!")
+            return
+            
+        self.reset_to_100_90()
 
-def setTo100_90(tankx,tanky):
-    mouse.position = (tankx,tanky)
-    time.sleep(0.05)
-    mouse.press(ms.Button.left)
-    time.sleep(0.05)
-    mouse.move(0,-tanky)
-    time.sleep(0.05)
-    mouse.release(ms.Button.left)
+        # Determine direction based on player relative to enemy
+        direction = "right" if self.player_pos[0] < self.enemy_pos[0] else "left"
+        
+        diff_power = target_power - 100
+        diff_angle = (target_angle - 90) if direction == "left" else (-target_angle + 90)
+            
+        # Apply power changes
+        if diff_power > 0:
+            for _ in range(diff_power):
+                self.keyboard.tap(Key.up)
+                time.sleep(0.02)
+        else:
+            for _ in range(-diff_power):
+                self.keyboard.tap(Key.down)
+                time.sleep(0.02)
+                
+        # Apply angle changes
+        if diff_angle > 0:
+            for _ in range(diff_angle):
+                self.keyboard.tap(Key.right)
+                time.sleep(0.02)
+        else:
+            for _ in range(-diff_angle):
+                self.keyboard.tap(Key.left)
+                time.sleep(0.02)
+                
+        # Clear positions after shot is prepared
+        self.player_pos = None
+        self.enemy_pos = None
+        self.optimal_shot = None
+        self.high_shot = None
+        print("Ready for next target!")
 
-def posPlayer(x, y, button, pressed):
-    if pressed:
-        print("Your position: " + str(x) + ", " + str(y))
-        global YourX
-        YourX = x
-        global YourY
-        YourY = y
-    return False
+    def prepare_optimal_shot(self):
+        if self.optimal_shot:
+            print(f"Preparing optimal shot: {self.optimal_shot}")
+            self.apply_shot(*self.optimal_shot)
+        else:
+            print("Optimal shot not calculated yet.")
 
-def posEnemy(x, y, button, pressed):
-    if pressed:
-        print("Enemy position: " + str(x) + ", " + str(y))
-        global EnemyX
-        EnemyX = x
-        global EnemyY
-        EnemyY = y
-    return False
+    def prepare_high_shot(self):
+        if self.high_shot:
+            print(f"Preparing high shot: {self.high_shot}")
+            self.apply_shot(*self.high_shot)
+        else:
+            print("High shot not calculated yet.")
 
-def PlayerLocation():
-    #cleanGlobals()
-    print('Click your Tank')
-    mouse_listener = MouseListener(on_click=posPlayer)
-    mouse_listener.start()
-    mouse_listener.join()
-    if 'EnemyX' in globals() and 'EnemyY' in globals():
-        # all needed, calc shot
-        diffx = abs(YourX-EnemyX)
-        diffy = -EnemyY+YourY
-        calcOptimal(diffx,diffy)
-        calcHighestBelow100(diffx,diffy)
+    def run(self):
+        hotkeys = {
+            '<ctrl>+<alt>+p': self.set_player_pos,
+            '<ctrl>+<alt>+e': self.set_enemy_pos,
+            '<ctrl>+<alt>+s': self.prepare_optimal_shot,
+            '<ctrl>+<alt>+h': self.prepare_high_shot
+        }
+        
+        print("=======================================")
+        print("      ShellShockLive Aimbot Loaded     ")
+        print("=======================================")
+        print("Shortcuts:")
+        print("  Ctrl+Alt+P : Set Player Position")
+        print("  Ctrl+Alt+E : Set Enemy Position")
+        print("  Ctrl+Alt+S : Prepare Optimal Shot")
+        print("  Ctrl+Alt+H : Prepare High Angle Shot")
+        print("=======================================")
+        
+        with GlobalHotKeys(hotkeys) as h:
+            h.join()
 
-def EnemyLocation():
-    #cleanGlobals()
-    print('Click enemy Tank')
-    mouse_listener = MouseListener(on_click=posEnemy)
-    mouse_listener.start()
-    mouse_listener.join()
-    if 'YourX' in globals() and 'YourY' in globals():
-        # all needed, calc shot
-        diffx = abs(YourX-EnemyX)
-        diffy = -EnemyY+YourY
-        calcOptimal(diffx,diffy)
-        calcHighestBelow100(diffx,diffy)
-
-def prepareShot():
-    setTo100_90(YourX,YourY)
-    if YourX < EnemyX:
-        direction = "right"
-    else:
-        direction = "left"
-    setPowerAndAngle(round(velocity),angle,100,90,direction)
-    cleanGlobals()
-
-def prepareHighShot():
-    setTo100_90(YourX,YourY)
-    if YourX < EnemyX:
-        direction = "right"
-    else:
-        direction = "left"
-    setPowerAndAngle(round(highVelocity),highAngle,100,90,direction)
-    cleanGlobals()
-
-with keyboard.GlobalHotKeys({'<ctrl>+<alt>+P': PlayerLocation, '<ctrl>+<alt>+E': EnemyLocation, '<ctrl>+<alt>+S': prepareShot, '<ctrl>+<alt>+H': prepareHighShot}) as h:
-    h.join()
+if __name__ == "__main__":
+    bot = ShellShockAimbot()
+    bot.run()
